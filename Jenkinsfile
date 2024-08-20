@@ -22,5 +22,51 @@ pipeline {
                 }
             }
         }
+
+        stage('terraform formatting'){
+            steps{
+                dir('EKS'){
+                    sh 'terraform fmt'
+                }
+            }
+        }
+
+        stage('terraform validating'){
+            steps{
+                dir('EKS'){
+                    sh 'terraform validate'
+                }
+            }
+        }
+
+        stage('terraform planning'){
+            steps{
+                dir('EKS'){
+                    sh 'terraform plan'
+                }
+                input(message: "Are you sure to proceed?", ok: "Proceed")
+            }
+        }
+
+        stage('terraform applying and creating EKS'){
+            steps{
+                dir('EKS'){
+                    sh 'terraform $action --auto-approve'
+                }
+            }
+        }
+
+        stage('Deploying Nginx Application') {
+            steps{
+                script{
+                    dir('EKS/configurationfiles') {
+                        sh 'aws eks update-kubeconfig --name my-eks-cluster'
+                        sh 'kubectl apply -f deployment.yaml'
+                        sh 'kubectl apply -f service.yaml'
+                    }
+                }
+            }
+        }
+
     }
 }
